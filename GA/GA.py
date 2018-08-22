@@ -1,39 +1,37 @@
-import random
-
-POP_SIZE = 5
-G_LENGTH = 10
-MAX_GEN = 20
-M_RATE = 0.1
-
-
-def init_gene():
-    population = []
-
-    for i in range(POP_SIZE):
-        population.append([random.randint(0, 1) for j in range(G_LENGTH)])
-    return population
-
-
-def calc_fitness(pop):
-    fitness = []
-
-    for p in pop:
-        count_bit = 0
-        count_bit += p[0:5].count(0)
-        count_bit += p[5:10].count(1)
-        fitness.append(count_bit)
-    return fitness
+import random, sys
 
 
 class GA:
-    def __init__(self):
-        self.gene = init_gene()
-        self.fitness = calc_fitness(self.gene)
+    def __init__(self, pop_size=5, g_length=10, max_gen=20, m_rate=0.1):
+        self.POP_SIZE = pop_size
+        self.G_LENGTH = g_length
+        self.MAX_GEN = max_gen
+        self.M_RATE = m_rate
+
+        self.gene = self.init_gene(self.POP_SIZE, self.G_LENGTH)
+        self.fitness = self.calc_fitness(self.gene)
         self.file = open('result.dat', 'w')
         self.t = 0
 
+    @staticmethod
+    def init_gene(pop_size, g_length):
+        population = []
+        for i in range(pop_size):
+            population.append([random.randint(0, 1) for _ in range(g_length)])
+        return population
+
+    @staticmethod
+    def calc_fitness(gene):
+        fitness = []
+        for p in gene:
+            count_bit = 0
+            count_bit += p[0:5].count(0)
+            count_bit += p[5:10].count(1)
+            fitness.append(count_bit)
+        return fitness
+
     def show_gene(self):
-        ave_fit = sum(self.fitness) / POP_SIZE
+        ave_fit = sum(self.fitness) / self.POP_SIZE
         max_fit = max(self.fitness)
 
         for g, f in zip(self.gene, self.fitness):
@@ -60,9 +58,9 @@ class GA:
 
     def reproduction(self):
         sum_of_fitness = sum(self.fitness)
-        new_gene = [[0 for _ in range(G_LENGTH)] for _ in range(POP_SIZE)]
+        new_gene = [[0 for _ in range(self.G_LENGTH)] for _ in range(self.POP_SIZE)]
 
-        for p in range(1, POP_SIZE):
+        for p in range(1, self.POP_SIZE):
             r = sum_of_fitness * random.random()
             num = 0
             border = self.fitness[0]
@@ -71,33 +69,33 @@ class GA:
                 num += 1
                 border += self.fitness[num]
 
-            for i in range(G_LENGTH):
+            for i in range(self.G_LENGTH):
                 new_gene[p][i] = self.gene[num][i]
 
-        for p in range(1, POP_SIZE):
-            for i in range(G_LENGTH):
+        for p in range(1, self.POP_SIZE):
+            for i in range(self.G_LENGTH):
                 self.gene[p][i] = new_gene[p][i]
 
     def crossover(self):
-        c_pos = random.randint(1, G_LENGTH - 1)
-        for i in range(1, POP_SIZE, 2):
-            self.gene[i][c_pos:G_LENGTH], self.gene[i + 1][c_pos:G_LENGTH] = \
-                self.gene[i + 1][c_pos:G_LENGTH], self.gene[i][c_pos:G_LENGTH]
+        c_pos = random.randint(1, self.G_LENGTH - 1)
+        for i in range(1, self.POP_SIZE, 2):
+            self.gene[i][c_pos:self.G_LENGTH], self.gene[i + 1][c_pos:self.G_LENGTH] = \
+                self.gene[i + 1][c_pos:self.G_LENGTH], self.gene[i][c_pos:self.G_LENGTH]
 
     def two_crossover(self):
-        c_pos1 = random.randint(1, G_LENGTH - 1)
-        c_pos2 = random.randint(1, G_LENGTH - 1)
+        c_pos1 = random.randint(1, self.G_LENGTH - 1)
+        c_pos2 = random.randint(1, self.G_LENGTH - 1)
 
         if c_pos2 < c_pos1:
             c_pos1, c_pos2 = c_pos2, c_pos1
-        for i in range(1, POP_SIZE, 2):
+        for i in range(1, self.POP_SIZE, 2):
             self.gene[i][c_pos1:c_pos2], self.gene[i + 1][c_pos1: c_pos2] = \
                 self.gene[i + 1][c_pos1: c_pos2], self.gene[i][c_pos1: c_pos2]
 
     def mutation(self):
-        for i in range(POP_SIZE):
-            for j in range(G_LENGTH):
-                if random.random() <= M_RATE:
+        for i in range(self.POP_SIZE):
+            for j in range(self.G_LENGTH):
+                if random.random() <= self.M_RATE:
                     if self.gene[i][j] == 1:
                         self.gene[i][j] = 0
                     elif self.gene[i][j] == 0:
@@ -107,10 +105,15 @@ class GA:
         self.file.close()
 
 
-def main():
-    print("個体数　　　: {0}".format(POP_SIZE))
-    print("遺伝子長　　: {0}".format(G_LENGTH))
-    print("突然変異率　: {0}".format(M_RATE))
+def main(arg):
+    if len(arg) == 5:
+        ga = GA(args[1], args[2], args[3], args[4])
+    else:
+        ga = GA()
+
+    print("個体数　　　: {0}".format(ga.POP_SIZE))
+    print("遺伝子長　　: {0}".format(ga.G_LENGTH))
+    print("突然変異率　: {0}".format(ga.M_RATE))
 
     ga = GA()   # 初期化
     print("<< 初期個体群 >>")
@@ -118,18 +121,19 @@ def main():
 
     ga.show_gene()  # 遺伝子の表示
 
-    for t in range(MAX_GEN):
+    for t in range(ga.MAX_GEN):
         ga.t = t
         print("<< 世代数 {0} >>".format(t))
         ga.elite()
         ga.reproduction()
         ga.crossover()
         ga.mutation()
-        ga.fitness = calc_fitness(ga.gene)
+        ga.calc_fitness(ga.gene)
         ga.show_gene()
 
     del ga
 
 
 if __name__ == "__main__":
-    main()
+    args = sys.argv
+    main(args)
