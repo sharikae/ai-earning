@@ -128,7 +128,7 @@ def main(arg):
         ga.reproduction()
         ga.crossover()
         ga.mutation()
-        ga.calc_fitness(ga.gene)
+        ga.fitness = ga.calc_fitness(ga.gene)
         ga.show_gene()
 
     del ga
