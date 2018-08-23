@@ -1,92 +1,97 @@
 import numpy as np
-from numpy.ma import zeros
 
 import sys
 
-DATA_SIZE0 = 2
-DATA_SIZE = DATA_SIZE0 * DATA_SIZE0
+__author__ = "Shota Harikae"
+__version__ = "1.0"
+__date__ = "23 Aug 2018"
 
 
-def print_board(board):
-    """問題/答え出力"""
-    for bo in board:
-        for b in bo:
-            if b == 0:
-                print("-", end="")
-            else:
-                print(int(b), end="")
-            print(" ", end="")
-        print()
-    print()
+class Sudoku:
+    def __init__(self, data_size, file_patch):
+        self.DATA_SIZE0 = data_size
+        self.DATA_SIZE = self.DATA_SIZE0 * self.DATA_SIZE0
+        self.board = np.loadtxt(file_patch, delimiter=" ")
 
-
-def block(values, x, y, i):
-    """3x3のチェック"""
-    xbase = (x // DATA_SIZE0) * DATA_SIZE0
-    ybase = (y // DATA_SIZE0) * DATA_SIZE0
-    return all(True if i != values[_y][_x] else False
-               for _y in range(ybase, ybase + DATA_SIZE0)
-               for _x in range(xbase, xbase + DATA_SIZE0))
-
-
-def column(values, x, i):
-    """縦軸のチェック"""
-    return all(True if i != values[_y][x] else False for _y in range(DATA_SIZE))
-
-
-def row(values, y, i):
-    """横軸のチェック"""
-    return all(True if i != values[y][_x] else False for _x in range(DATA_SIZE))
-
-
-def check(values, x, y, i):
-    """値のチェック"""
-    if row(values, y, i) and column(values, x, i) and block(values, x, y, i):
-        return True
-    return False
-
-
-def solve(values, x=0, y=0):
-    """数独解析"""
-    print("[途中経過]")
-    print_board(values)
-    if y > DATA_SIZE - 1: #ポインタが最後までいったら完成
-        print("[答え]")
-        print_board(values)
-        return True
-    elif values[y][x] != 0: #空欄ではないなら飛ばす
-        if x == DATA_SIZE -1: #8列までいったら次の行に移動
-            if solve(values, 0, y+1):
-                return True
-        else:
-            if solve(values, x+1, y):
-                return True
-    else:
-        for i in range(1, DATA_SIZE + 1):#1から9までの数字を全て試す
-            if check(values, x, y, i): #チェックする
-                values[y][x] = i #OKなら数字を入れる
-                if x == DATA_SIZE - 1: #8列までいったら次の行に移動
-                    if solve(values, 0, y+1):
-                        return True
+    @staticmethod
+    def print_board(board):
+        """問題/答え出力"""
+        for bo in board:
+            for b in bo:
+                if b == 0:
+                    print("-", end="")
                 else:
-                    if solve(values, x+1, y):
-                        return True
-        values[y][x] = 0 #戻ってきたら0に戻す
+                    print(int(b), end="")
+                print(" ", end="")
+            print()
+        print()
+
+    def __block(self, values, x, y, i):
+        """3x3のチェック"""
+        xbase = (x // self.DATA_SIZE0) * self.DATA_SIZE0
+        ybase = (y // self.DATA_SIZE0) * self.DATA_SIZE0
+        return all(True if i != values[_y][_x] else False
+                   for _y in range(ybase, ybase + self.DATA_SIZE0)
+                   for _x in range(xbase, xbase + self.DATA_SIZE0))
+
+    def __column(self, values, x, i):
+        """縦軸のチェック"""
+        return all(True if i != values[_y][x] else False for _y in range(self.DATA_SIZE))
+
+    def __row(self, values, y, i):
+        """横軸のチェック"""
+        return all(True if i != values[y][_x] else False for _x in range(self.DATA_SIZE))
+
+    def __check(self, values, x, y, i):
+        """値のチェック"""
+        if self.__row(values, y, i) and self.__column(values, x, i) and self.__block(values, x, y, i):
+            return True
         return False
 
-# /************************************************************************
-# メインプログラム
-# ************************************************************************/
-def main(arg):
-    if len(arg) == 1:
-        print("使用法 : ./Sudoku.py 問題ファイル")
-        board = np.loadtxt('mondai1.dat', delimiter=" ")    # Load Sample
-    else:
-        board = np.loadtxt(arg[1], delimiter=" ")   # 問題読み込み
+    def solve(self, values, x=0, y=0):
+        """数独解析"""
+        print("[途中経過]")
+        self.print_board(values)
+        if y > self.DATA_SIZE - 1:
+            print("[答え]")
+            self.print_board(values)
+            return True
+        elif values[y][x] != 0:                                # 空欄ではないなら飛ばす
+            if x == self.DATA_SIZE - 1:                        # 8列までいったら次の行に移動
+                if self.solve(values, 0, y+1):
+                    return True
+            else:
+                if self.solve(values, x+1, y):
+                    return True
+        else:
+            for i in range(1, self.DATA_SIZE + 1):            # 1から9までの数字を試す
+                if self.__check(values, x, y, i):             # チェック
+                    values[y][x] = i                          # OKなら数字を入れる
+                    if x == self.DATA_SIZE - 1:               # 8列までいったら次の行に移動
+                        if self.solve(values, 0, y+1):
+                            return True
+                    else:
+                        if self.solve(values, x+1, y):
+                            return True
+            values[y][x] = 0                             # 戻ってきたら0に戻す
+            return False
 
-    print("[問題]")
-    print_board(board)
-    solve(board, 0, 0)
+
+def main(arg):
+    """
+    メインプログラム
+    :param arg: 範囲と問題fileのパスの配列
+    :return: None
+    """
+    if len(arg) == 3:
+        su = Sudoku(int(arg[1]), arg[2])         # クラス初期化,問題読み込み
+    else:
+        print("使用法 : ./Sudoku.py 問題ファイル")
+        su = Sudoku(3, 'mondai1.dat')       # Load Sample
+
+    print("[問題]")                          # 問題を解く
+    su.print_board(su.board)
+    su.solve(su.board, 0, 0)
 
 
 if __name__ == "__main__":
